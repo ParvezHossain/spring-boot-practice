@@ -104,7 +104,7 @@ public class EmployeeService {
 
         // @Lock(PESSIMISTIC_WRITE) | prevents two threads from updating the same row simultaneously
         Employee employee = employeeRepository.lockById(id)
-                .orElseThrow(() -> new ResourceNotFoundException(STR."Employee not found with id: \{id}"));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + id));
 
         Double currentSalary = Optional.ofNullable(employee.getSalary())
                 .orElse(0.0);

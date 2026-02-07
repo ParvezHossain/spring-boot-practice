@@ -1,5 +1,7 @@
 package com.parvez.spring_jpa.service;
 
+import com.parvez.spring_jpa.amqp.EmailProducer;
+import com.parvez.spring_jpa.dto.EmailEvent;
 import com.parvez.spring_jpa.dto.EmployeeLoginDTO;
 import com.parvez.spring_jpa.dto.EmployeeRegisterDTO;
 import com.parvez.spring_jpa.dto.EmployeeResponseDTO;
@@ -31,6 +33,8 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final EmailService emailService;
+    private final EmailProducer emailProducer;
 
     public EmployeeResponseDTO register(EmployeeRegisterDTO dto) {
         Employee emp = new Employee();
@@ -97,7 +101,7 @@ public class AuthService {
         refreshTokenRepository.deleteByUsername(refreshToken);
     }
 
-    public String forgotPassword(String email) {
+    public void forgotPassword(String email) {
         Employee employee = (Employee) employeeRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         // Delete old tokens
@@ -111,11 +115,15 @@ public class AuthService {
 
         passwordResetTokenRepository.save(passwordResetToken);
 
-        // Send email (mock for now)
-        System.out.println(
-                "Reset link: http://frontend/reset-password?token=" + token
+        String resetLink = "Reset link: http://frontend/reset-password?token=" + token;
+
+        EmailEvent emailEvent = new EmailEvent(
+                email,
+                "Password Reset",
+                "Click here to reset password: " + resetLink
         );
-        return token;
+        emailProducer.sendEmail(emailEvent);
+//        emailService.sendEmail(email, resetLink);
     }
 
     public void resetPassword(String token, String newPassword) {

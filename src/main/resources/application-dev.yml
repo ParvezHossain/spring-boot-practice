@@ -1,13 +1,13 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/playground
-    username: postgres
-    password: Ph@ssain2025
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
     hikari:
-      maximum-pool-size: 10
-      minimum-idle: 2
+      maximum-pool-size: 20
+      minimum-idle: 5
       idle-timeout: 30000
       max-lifetime: 1800000
       connection-timeout: 20000
@@ -15,17 +15,17 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: validate
+    show-sql: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
 
   rabbitmq:
-    host: localhost
-    port: 5672
-    username: guest
-    password: guest
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
     template:
       mandatory: true
       receive-timeout: 5000
@@ -33,33 +33,45 @@ spring:
     listener:
       simple:
         default-requeue-rejected: false
-        concurrency: 3
-        max-concurrency: 10
-        prefetch: 1
+        concurrency: 5
+        max-concurrency: 20
+        prefetch: 10
 
   cache:
     type: redis
 
     data:
       redis:
-        host: localhost
-        port: 6379
+        host: ${REDIS_HOST}
+        port: ${REDIS_PORT}
         timeout: 2s
 
         lettuce:
           pool:
-            max-active: 8
-            max-idle: 8
-            min-idle: 2
+            max-active: 16
+            max-idle: 16
+            min-idle: 4
+
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 logging:
   level:
-    org.springframework.cache: TRACE
-    org.springframework.data.redis: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
+    root: INFO
+    org.springframework: WARN
+    org.hibernate: WARN
+    org.springframework.security: INFO
 
 jwt:
-  secret: HNdUQ6/rEbglkRb89eNEwvQuHASmRHDdZUx6obVLAS0=
-  expiration: 3600000
-  refresh-expiration: 36000000
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_ACCESS_EXPIRATION}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION}

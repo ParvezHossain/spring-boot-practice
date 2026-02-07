@@ -39,8 +39,8 @@ public class EmployeeController {
                 .getAuthorities()
                 .stream()
                 .map(a -> a.getAuthority())
-                .anyMatch(role -> role.equals(STR."ROLE_\{Role.ADMIN}")
-                        || role.equals(STR."ROLE_\{Role.HR}")
+                .anyMatch(role -> role.equals(Role.ADMIN.name())
+                        || role.equals(Role.HR.name())
                 );
 
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -70,9 +70,6 @@ public class EmployeeController {
             @RequestParam @Positive(message = "Increment amount must be positive") Double amount
     ) throws BadRequestException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        System.out.println(STR."Current user: \{authentication.getAuthorities().stream().toList()}");
-
 
 /*
         boolean isHr = authentication

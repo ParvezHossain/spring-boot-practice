@@ -10,7 +10,6 @@ public class SalaryUpdatedListener {
 
     @RabbitListener(queues = RabbitMQConfig.SALARY_QUEUE)
     public void onSalaryUpdate(EmployeeSalaryUpdatedEvent event) {
-        System.out.println("Salary Updated Event Received:");
         System.out.println(event);
     }
 }
