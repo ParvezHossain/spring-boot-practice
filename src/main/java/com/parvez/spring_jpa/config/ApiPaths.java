@@ -2,7 +2,8 @@ package com.parvez.spring_jpa.config;
 
 public final class ApiPaths {
 
-    private ApiPaths() {}
+    private ApiPaths() {
+    }
 
     public static final String API_ENTRY_PATH = "/api";
 
@@ -22,4 +23,7 @@ public final class ApiPaths {
     // Employee endpoints
     public static final String SALARY_INCREMENT = EMPLOYEES + "/*/salary/increment";
     public static final String EMPLOYEE_READ = EMPLOYEES + "/**";
+
+    // HomeController endpoints
+    public static final String HOME_PATH = API_ENTRY_PATH + "/home";
 }

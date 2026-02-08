@@ -45,6 +45,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS)
                         .permitAll()
 
+                        .requestMatchers(HttpMethod.GET, ApiPaths.HOME_PATH)
+                        .permitAll()
+
                         .requestMatchers(HttpMethod.POST, PRIVATE_AUTH_ENDPOINTS)
                         .authenticated()
 

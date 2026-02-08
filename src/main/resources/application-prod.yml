@@ -45,6 +45,8 @@ spring:
         host: ${REDIS_HOST}
         port: ${REDIS_PORT}
         timeout: 2s
+        max_request_per_minute: ${MAX_REQUESTS_PER_MINUTE:5}
+        window_second: ${WINDOW_SECOND:300}
 
         lettuce:
           pool:
