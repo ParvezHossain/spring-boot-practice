@@ -5,25 +5,26 @@ public final class ApiPaths {
     private ApiPaths() {
     }
 
-    public static final String API_ENTRY_PATH = "/api";
+    /* ================= BASE ================= */
+    public static final String API_BASE = "/api/v1";
 
-    // Use standard + for concatenation to keep them as compile-time constants
-    public static final String EMPLOYEES = API_ENTRY_PATH + "/employees";
-    public static final String AUTH = API_ENTRY_PATH + "/auth";
+    /* ================= AUTH ================= */
+    public static final String AUTH = API_BASE + "/auth/**";
+    public static final String LOGIN = API_BASE + "/auth/login";
+    public static final String REGISTER = API_BASE + "/auth/register";
+    public static final String FORGOT_PASSWORD = API_BASE + "/auth/forgot-password";
+    public static final String RESET_PASSWORD = API_BASE + "/auth/reset-password";
 
-    // Auth endpoints
-    public static final String LOGIN = AUTH + "/login";
-    public static final String REGISTER = AUTH + "/register";
-    public static final String LOGOUT = AUTH + "/logout";
-    public static final String REFRESH = AUTH + "/refresh";
-    public static final String LOGOUT_ALL = AUTH + "/logout-all";
-    public static final String FORGOT_PASSWORD = AUTH + "/forgot-password";
-    public static final String RESET_PASSWORD = AUTH + "/reset-password";
+    /* ================= HOME ================= */
+    public static final String HOME = API_BASE + "/home";
 
-    // Employee endpoints
-    public static final String SALARY_INCREMENT = EMPLOYEES + "/*/salary/increment";
-    public static final String EMPLOYEE_READ = EMPLOYEES + "/**";
+    /* ================= CATEGORY ================= */
+    public static final String CATEGORIES = API_BASE + "/categories/**";
 
-    // HomeController endpoints
-    public static final String HOME_PATH = API_ENTRY_PATH + "/home";
+    /* ================= EXPENSE ================= */
+    public static final String EXPENSES = API_BASE + "/expenses/**";
+
+    /* ================= EMPLOYEE ================= */
+    public static final String EMPLOYEES = API_BASE + "/employees/**";
+    public static final String SALARY_INCREMENT = API_BASE + "/employees/*/salary/increment";
 }

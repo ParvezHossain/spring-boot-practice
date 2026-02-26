@@ -24,7 +24,11 @@ public class JwtUtil {
     private long REFRESH_TOKEN_EXPIRATION_MS;
 
     @Autowired
-    public JwtUtil(@Value("${jwt.secret}") String secretKey, @Value("${jwt.expiration}") long ACCESS_TOKEN_EXPIRATION_MS, @Value("${jwt.refresh-expiration}") long REFRESH_TOKEN_EXPIRATION_MS) {
+    public JwtUtil(
+            @Value("${jwt.secret}") String secretKey,
+            @Value("${jwt.expiration}") long ACCESS_TOKEN_EXPIRATION_MS,
+            @Value("${jwt.refresh-expiration}") long REFRESH_TOKEN_EXPIRATION_MS
+    ) {
         byte[] decodedKey = Base64.getDecoder().decode(secretKey);
         this.key = Keys.hmacShaKeyFor(decodedKey);
         this.ACCESS_TOKEN_EXPIRATION_MS = ACCESS_TOKEN_EXPIRATION_MS;

@@ -33,8 +33,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     // List of endpoints to be rate-limited
     private final Map<String, List<String>> rateLimitedEndpoints = Map.of(
             ApiPaths.FORGOT_PASSWORD, List.of(HttpMethod.POST.name()),
-            ApiPaths.RESET_PASSWORD, List.of(HttpMethod.POST.name()),
-            ApiPaths.HOME_PATH, List.of(HttpMethod.GET.name())
+            ApiPaths.RESET_PASSWORD, List.of(HttpMethod.POST.name())
             // Add more endpoints here as needed
     );
 

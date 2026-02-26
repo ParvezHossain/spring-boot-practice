@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,26 +15,10 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @RequiredArgsConstructor
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
-
-    /* =====================  API PATH CONSTANTS  ===================== */
-
-    private static final String[] PUBLIC_ENDPOINTS = {
-            ApiPaths.LOGIN,
-            ApiPaths.REGISTER,
-            ApiPaths.RESET_PASSWORD,
-            ApiPaths.FORGOT_PASSWORD,
-    };
-
-    private static final String[] PRIVATE_AUTH_ENDPOINTS = {
-            ApiPaths.LOGOUT,
-            ApiPaths.LOGOUT_ALL,
-            ApiPaths.REFRESH,
-    };
-
-    /* ===================== SECURITY CONFIG ===================== */
 
     @Bean
     public SecurityFilterChain securityWebFilterChain(HttpSecurity http) throws Exception {
@@ -41,29 +26,29 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // Public APIs
-                        .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS)
-                        .permitAll()
 
-                        .requestMatchers(HttpMethod.GET, ApiPaths.HOME_PATH)
-                        .permitAll()
+                        /* ================= PUBLIC ================= */
+                        .requestMatchers(
+                                ApiPaths.LOGIN,
+                                ApiPaths.REGISTER,
+                                ApiPaths.FORGOT_PASSWORD,
+                                ApiPaths.RESET_PASSWORD,
+                                ApiPaths.HOME
+                        ).permitAll()
 
-                        .requestMatchers(HttpMethod.POST, PRIVATE_AUTH_ENDPOINTS)
+
+                        /* ================= PROTECTED API ================= */
+                        .requestMatchers(ApiPaths.API_BASE + "/**")
                         .authenticated()
 
-                        // HR-only APIs
-                        .requestMatchers(HttpMethod.POST, ApiPaths.SALARY_INCREMENT)
-                        .hasRole(Role.HR.name())
-
-                        // HR & ADMIN read access
-                        .requestMatchers(HttpMethod.GET, ApiPaths.EMPLOYEE_READ)
-                        .hasAnyRole(Role.HR.name(), Role.ADMIN.name())
-
-                        // Everything else
+                        /* ================= EVERYTHING ELSE ================= */
                         .anyRequest()
-                        .authenticated()
+                        .permitAll()
                 )
-                .addFilterBefore(jwtAuthFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(
+                        jwtAuthFilter,
+                        org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class
+                );
         return http.build();
     }
 

@@ -1,10 +1,10 @@
 package com.parvez.spring_jpa.service;
 
 import com.parvez.spring_jpa.amqp.EmailProducer;
-import com.parvez.spring_jpa.dto.EmailEvent;
-import com.parvez.spring_jpa.dto.EmployeeLoginDTO;
-import com.parvez.spring_jpa.dto.EmployeeRegisterDTO;
-import com.parvez.spring_jpa.dto.EmployeeResponseDTO;
+import com.parvez.spring_jpa.dto.*;
+import com.parvez.spring_jpa.exceptions.DuplicateCategoryException;
+import com.parvez.spring_jpa.exceptions.DuplicateResourceException;
+import com.parvez.spring_jpa.exceptions.InvalidTokenException;
 import com.parvez.spring_jpa.exceptions.ResourceNotFoundException;
 import com.parvez.spring_jpa.model.Employee;
 import com.parvez.spring_jpa.model.PasswordResetToken;
@@ -16,6 +16,9 @@ import com.parvez.spring_jpa.repository.RefreshTokenRepository;
 import com.parvez.spring_jpa.security.JwtUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -35,8 +38,18 @@ public class AuthService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final EmailService emailService;
     private final EmailProducer emailProducer;
+    private final AuthenticationManager authenticationManager;
 
     public EmployeeResponseDTO register(EmployeeRegisterDTO dto) {
+
+        if (employeeRepository.existsByUsername(dto.username())) {
+            throw new DataIntegrityViolationException("Username is already in use");
+        }
+
+        if (employeeRepository.existsByEmail(dto.email())) {
+            throw new DataIntegrityViolationException("Email is already in use");
+        }
+
         Employee emp = new Employee();
         emp.setUsername(dto.username());
         emp.setFirstName(dto.firstName());
@@ -60,7 +73,29 @@ public class AuthService {
         );
     }
 
-    public String login(EmployeeLoginDTO dto) {
+    private void rotateRefreshToken(String username, String deviceId) {
+        refreshTokenRepository.deleteByUsernameAndDeviceId(username, deviceId);
+    }
+
+    public TokenResponseDTO login(EmployeeLoginDTO dto, String deviceId) {
+
+        // Authenticate
+//        authenticationManager.authenticate(
+//                new UsernamePasswordAuthenticationToken(dto.username(), dto.password())
+//        );
+
+        // Remove old refresh token for same device
+        rotateRefreshToken(dto.username(), deviceId);
+
+        // 3. Generate new state
+        String accessToken = generateAccessToken(dto);
+        String refreshToken = jwtUtil.generateRefreshToken(dto.username());
+
+        saveRefreshToken(dto.username(), refreshToken, deviceId);
+        return new TokenResponseDTO(accessToken, refreshToken);
+    }
+
+    public String generateAccessToken(EmployeeLoginDTO dto) {
 
         try {
             Employee emp = employeeRepository
@@ -75,30 +110,70 @@ public class AuthService {
     }
 
     public void saveRefreshToken(String username, String refreshToken, String deviceId) {
-        RefreshToken token = new RefreshToken();
-        token.setUsername(username);
-        token.setToken(refreshToken);
-        token.setDeviceId(deviceId);
-        token.setExpiryDate(Instant.now().plus(1, ChronoUnit.DAYS));
+        RefreshToken token = RefreshToken
+                .builder()
+                .username(username)
+                .token(refreshToken)
+                .deviceId(deviceId)
+                .expiryDate(Instant.now().plus(1, ChronoUnit.DAYS))
+                .build();
         refreshTokenRepository.save(token);
     }
 
-    public boolean validateRefreshToken(String refreshToken) {
-        try {
-            RefreshToken token = refreshTokenRepository.findByToken(refreshToken);
+    public String extractToken(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new InvalidTokenException("Invalid Authorization header");
+        }
 
-            if (token.getExpiryDate().isBefore(Instant.now())) {
-                refreshTokenRepository.delete(token);
-                throw new RuntimeException("Refresh token expired");
-            }
-        } catch (RuntimeException e) {
-            throw new ResourceNotFoundException("Invalid refresh token");
+        return authHeader.substring(7);
+    }
+
+    public String accessToken(String token, String deviceId) {
+        RefreshToken storedToken = getStoredRefreshToken(token, deviceId);
+        validateExpiry(storedToken);
+
+        Employee employee = getEmployeeFromToken(token);
+
+        return jwtUtil.generateToken(
+                employee.getUsername(),
+                employee.getRole().toString()
+        );
+    }
+
+    private Employee getEmployeeFromToken(String token) {
+        String username = jwtUtil.extractUsername(token);
+        return employeeRepository.findByUsername(username);
+    }
+
+    private RefreshToken getStoredRefreshToken(String token, String deviceId) {
+        return refreshTokenRepository
+                .findByTokenAndDeviceId(token, deviceId).orElseThrow(
+                        () -> new ResourceNotFoundException("Refresh token not found")
+                );
+    }
+
+    private boolean validateExpiry(RefreshToken storedRefreshToken) {
+        if (
+                storedRefreshToken == null || storedRefreshToken.getExpiryDate().isBefore(Instant.now())
+        ) {
+            refreshTokenRepository.delete(storedRefreshToken);
+            throw new InvalidTokenException("Invalid token");
         }
         return true;
     }
 
-    public void logout(String refreshToken) {
-        refreshTokenRepository.deleteByUsername(refreshToken);
+    public void logout(String authHeader, String deviceId) {
+        String token = extractToken(authHeader);
+        String username = jwtUtil.extractUsername(token);
+        refreshTokenRepository.deleteByUsernameAndDeviceId(
+                username, deviceId
+        );
+    }
+
+    public void logoutAllDevices(String authHeader) {
+        String token = extractToken(authHeader);
+        String username = jwtUtil.extractUsername(token);
+        refreshTokenRepository.deleteByUsername(username);
     }
 
     public void forgotPassword(String email) {

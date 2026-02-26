@@ -1,5 +1,6 @@
 package com.parvez.spring_jpa.controller;
 
+import com.parvez.spring_jpa.config.ApiPaths;
 import com.parvez.spring_jpa.dto.EmployeeRegisterDTO;
 import com.parvez.spring_jpa.dto.EmployeeResponseDTO;
 import com.parvez.spring_jpa.model.Role;
@@ -18,13 +19,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/employees")
+@RequestMapping(ApiPaths.EMPLOYEES)
 @RequiredArgsConstructor
-@EnableMethodSecurity
+@PreAuthorize("hasAnyRole('ADMIN','HR')")
 public class EmployeeController {
     private final EmployeeService employeeService;
 
-    @PreAuthorize("hasAnyRole('HR', 'ADMIN')")
     @GetMapping
     public ResponseEntity<Page<EmployeeResponseDTO>> findAll(
             @RequestParam(defaultValue = "0") int page,
@@ -63,7 +63,6 @@ public class EmployeeController {
      * - Uses JWT from SecurityContext
      */
 
-    @PreAuthorize("hasRole('HR')")
     @PostMapping("/{id}/salary/increment")
     public ResponseEntity<EmployeeResponseDTO> incrementSalary(
             @PathVariable Long id,

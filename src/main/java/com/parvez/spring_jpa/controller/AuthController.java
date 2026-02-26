@@ -1,5 +1,6 @@
 package com.parvez.spring_jpa.controller;
 
+import com.parvez.spring_jpa.config.ApiPaths;
 import com.parvez.spring_jpa.dto.*;
 import com.parvez.spring_jpa.model.Employee;
 import com.parvez.spring_jpa.model.RefreshToken;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping(ApiPaths.AUTH)
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
@@ -24,6 +25,7 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final RefreshTokenRepository refreshTokenRepository;
 
+    @Transactional
     @PostMapping("/register")
     public ResponseEntity<EmployeeResponseDTO> register(@RequestBody EmployeeRegisterDTO dto) {
         return ResponseEntity
@@ -37,17 +39,8 @@ public class AuthController {
             @RequestBody EmployeeLoginDTO dto,
             @RequestHeader("Device-Id") String deviceId
     ) {
-        // Remove old refresh token for same device
-        refreshTokenRepository.deleteByUsernameAndDeviceId(
-                dto.username(), deviceId
-        );
+        return ResponseEntity.ok(authService.login(dto, deviceId));
 
-        String accessToken = authService.login(dto);
-        String refreshToken = jwtUtil.generateRefreshToken(dto.username());
-
-        authService.saveRefreshToken(dto.username(), refreshToken, deviceId);
-
-        return ResponseEntity.ok(new TokenResponseDTO(accessToken, refreshToken));
     }
 
     @Transactional
@@ -56,32 +49,9 @@ public class AuthController {
             @RequestHeader("Authorization") String authHeader,
             @RequestHeader("Device-Id") String deviceId
     ) {
-
-        String token = authHeader.substring(7);
-
-        authService.validateRefreshToken(token);
-
-        RefreshToken storedToken =
-                refreshTokenRepository
-                        .findByTokenAndDeviceId(token, deviceId)
-                        .orElse(null);
-
-
-        if (storedToken == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-
-        if (storedToken.getExpiryDate().isBefore(Instant.now())) {
-            refreshTokenRepository.delete(storedToken);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-
-        String username = jwtUtil.extractUsername(token);
-        Employee employee = employeeService.findByUsername(username);
-
-        String newAccessToken = jwtUtil.generateToken(username, employee.getRole().toString());
-        return ResponseEntity.ok(new TokenResponseDTO(newAccessToken, token));
+        String token = authService.extractToken(authHeader);
+        String accessToken = authService.accessToken(token, deviceId);
+        return ResponseEntity.ok(new TokenResponseDTO(accessToken, token));
     }
 
     @Transactional
@@ -90,11 +60,7 @@ public class AuthController {
             @RequestHeader("Authorization") String authHeader,
             @RequestHeader("Device-Id") String deviceId
     ) {
-        String token = authHeader.substring(7);
-        String username = jwtUtil.extractUsername(token);
-        refreshTokenRepository.deleteByUsernameAndDeviceId(
-                username, deviceId
-        );
+        authService.logout(authHeader, deviceId);
         return ResponseEntity.ok().build();
     }
 
@@ -103,9 +69,7 @@ public class AuthController {
     public ResponseEntity<Void> logoutAllDevices(
             @RequestHeader("Authorization") String authHeader
     ) {
-        String token = authHeader.substring(7);
-        String username = jwtUtil.extractUsername(token);
-        refreshTokenRepository.deleteByUsername(username);
+        authService.logoutAllDevices(authHeader);
         return ResponseEntity.ok().build();
     }
 }

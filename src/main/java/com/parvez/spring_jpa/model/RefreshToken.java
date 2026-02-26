@@ -1,8 +1,7 @@
 package com.parvez.spring_jpa.model;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -12,6 +11,9 @@ import java.util.Date;
 @Table(name = "refresh_table")
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class RefreshToken {
 
     @Id
